@@ -419,6 +419,27 @@ void showHistogram(const std::string& name, int* hist, const int  hist_cols, con
 
 	imshow(name, imgHist);
 }
+void showHistogram2(const std::string& name, float* hist, const int  hist_cols, const int hist_height)
+{
+	Mat imgHist(hist_height, hist_cols, CV_8UC3, CV_RGB(255, 255, 255)); // constructs a white image
+
+	//computes histogram maximum
+	float max_hist = 0;
+	for (int i = 0; i < hist_cols; i++)
+		if (hist[i] > max_hist)
+			max_hist = hist[i];
+	double scale = 1.0;
+	scale = (double)hist_height / max_hist;
+	int baseline = hist_height - 1;
+
+	for (int x = 0; x < hist_cols; x++) {
+		Point p1 = Point(x, baseline);
+		Point p2 = Point(x, baseline - cvRound(hist[x] * scale));
+		line(imgHist, p1, p2, CV_RGB(255, 0, 255)); // histogram bins colored in magenta
+	}
+
+	imshow(name, imgHist);
+}
 
 uchar test_value(uchar x) {
 
@@ -655,11 +676,252 @@ bool isInside(int i, int j, Mat img) {
 		return 0;
 	else
 	{
-		if (i < img.rows && j, img.cols)
+		if (i < img.rows && j < img.cols)
 			return 1;
 	}
 
 	return 0;
+}
+
+
+int * Histogram(String fname) {
+
+	Mat src = imread(fname, CV_LOAD_IMAGE_COLOR);
+	int rez[256];
+	for (int i = 0; i < 256; i++) {
+		rez[i] = 0;
+	}
+
+	int height = src.rows;
+	int width = src.cols;
+
+	for (int i = 0; i < height; i++)
+		for (int j = 0; j < width; j++)
+		{
+			rez[src.at<uchar>(i, j)]++;
+		}
+	
+
+	return rez;
+	
+
+}
+float *  FDP(String fname) {
+
+	
+		Mat src = imread(fname, CV_LOAD_IMAGE_COLOR);
+		
+		float rez[256];
+		int*  his = Histogram(fname);
+		for (int i = 0; i < 256; i++) {
+			rez[i] = 0.0;
+			
+		}
+	
+		
+		for (int i = 0; i < 256; i++) {
+			rez[i] = (float)his[i] /(float) (src.rows*src.cols);
+		}
+		
+		return rez;
+		
+
+	
+
+}
+void acumulator(String fname, int nr) {
+
+	Mat src = imread(fname, CV_LOAD_IMAGE_COLOR);
+	int rez[256];
+	for (int i = 0; i < 256; i++) {
+		rez[i] = 0;
+	}
+
+	int height = src.rows;
+	int width = src.cols;
+
+	for (int i = 0; i < height; i++)
+		for (int j = 0; j < width; j++)
+		{
+			rez[src.at<uchar>(i, j)/nr]++;
+		}
+
+
+	showHistogram("histogram", rez, 256, 200);
+	waitKey();
+
+}
+
+void praguri_multiple() {
+
+	char fname[MAX_PATH];
+	while (openFileDlg(fname))
+	{
+		float *fdp = FDP(fname);
+		std::vector<int> vec;
+		int wh = 5;
+		int l_fer = 2 * wh + 1;
+		float th = 0.0003;
+		double m;
+		bool maxim;
+		vec.push_back(0);
+		for (int i = wh; i < 256 - wh; i++) {
+			m = 0.0;
+			maxim = 1;
+			for (int j = i - wh; j <= i + wh; j++) {
+				if (fdp[j] > fdp[i]) 
+					maxim = 0;
+				m += fdp[j];
+			}
+			m = (double)m / l_fer;
+			if (fdp[i] > m + th && maxim)
+				vec.push_back(i);
+
+		}
+		vec.push_back(255);
+		Mat src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
+		Mat clone = src.clone();
+		int height = src.rows;
+		int width = src.cols;
+
+		for (int i = 0; i < height; i++)
+			for (int j = 0; j < width; j++) {
+				int g = src.at<uchar>(i, j);
+				int dist = 1000;
+				int pixel;
+				for (std::vector<int>::iterator it = vec.begin(); it != vec.end(); ++it) {
+
+					if (abs(*it - g) < dist) {
+						dist = abs(*it - g);
+						pixel = *it;
+					}
+				}
+				src.at<uchar>(i, j) = pixel;
+			}
+		imshow("initial image", clone);
+		imshow("nivele gri", src);
+
+		waitKey();
+	}
+
+}
+void praguri_multiple_erori() {
+
+	char fname[MAX_PATH];
+	while (openFileDlg(fname))
+	{
+		float *fdp = FDP(fname);
+		std::vector<int> vec;
+		int wh = 5;
+		int l_fer = 2 * wh + 1;
+		float th = 0.0003;
+		double m;
+		bool maxim;
+		vec.push_back(0);
+		for (int i = wh; i < 256 - wh; i++) {
+			m = 0;
+			maxim = 1;
+			for (int j = i - wh; j <= i + wh; j++) {
+				if (fdp[j] > fdp[i])
+					maxim = 0;
+				m += fdp[j];
+			}
+			m = m / l_fer;
+			if (fdp[i] > m + th && maxim)
+				vec.push_back(i);
+
+		}
+		vec.push_back(255);
+		Mat src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
+		Mat clone = src.clone();
+		int height = src.rows;
+		int width = src.cols;
+
+		for (int i = 0; i < height; i++)
+			for (int j = 0; j < width; j++) {
+				int g = src.at<uchar>(i, j);
+				int dist = 1000;
+				int pixel;
+				for (std::vector<int>::iterator it = vec.begin(); it != vec.end(); ++it) {
+
+					if (abs(*it - g) < dist) {
+						dist = abs(*it - g);
+						pixel = *it;
+					}
+				}
+				
+				int error = g - pixel;
+				if (isInside(i, j + 1, src))
+					src.at<uchar>(i, j + 1) = test_value(src.at<uchar>(i, j + 1) + 7 * error / 16);
+				if (isInside(i+1, j - 1, src))
+					src.at<uchar>(i+1, j - 1) = test_value(src.at<uchar>(i+1, j - 1) + 3 * error / 16);
+				if (isInside(i+1, j , src))
+					src.at<uchar>(i+1, j ) = test_value(src.at<uchar>(i+1, j ) + 5 * error / 16);
+				if (isInside(i+1, j + 1, src))
+					src.at<uchar>(i+1, j + 1) = test_value(src.at<uchar>(i+1, j + 1) +  error / 16);
+				
+			}
+		imshow("initial image", clone);
+		imshow("nivele gri", src);
+
+		waitKey();
+	}
+
+}
+void praguri_multiple_HSV() {
+
+	char fname[MAX_PATH];
+	while (openFileDlg(fname))
+	{
+		float *fdp = FDP(fname);
+		std::vector<int> vec;
+		int wh = 5;
+		int l_fer = 2 * wh + 1;
+		float th = 0.0003;
+		double m;
+		bool maxim;
+		vec.push_back(0);
+		for (int i = wh; i < 256 - wh; i++) {
+			m = 0.0;
+			maxim = 1;
+			for (int j = i - wh; j <= i + wh; j++) {
+				if (fdp[j] > fdp[i])
+					maxim = 0;
+				m += fdp[j];
+			}
+			m = (double)m / l_fer;
+			if (fdp[i] > m + th && maxim)
+				vec.push_back(i);
+
+		}
+		vec.push_back(255);
+		Mat src =RGB_HSV(fname);
+		Mat clone = src.clone();
+		int height = src.rows;
+		int width = src.cols;
+
+		for (int i = 0; i < height; i++)
+			for (int j = 0; j < width; j++) {
+				Vec3b g = src.at<Vec3b>(i, j);
+				int dist = 1000;
+				Vec3b pixel = src.at<Vec3b>(i, j);
+				for (std::vector<int>::iterator it = vec.begin(); it != vec.end(); ++it) {
+
+					if (abs(*it - g[0]) < dist) {
+						dist = abs(*it - g[0]);
+						pixel[0] = *it;
+					}
+				}
+				src.at<Vec3b>(i, j) = pixel;
+			}
+		Mat rgb;
+		cv::cvtColor(src, rgb, CV_HSV2BGR);
+		imshow("initial image", clone);
+		imshow("nivele gri", rgb);
+
+		waitKey();
+	}
+
 }
 
 int main()
@@ -687,12 +949,17 @@ int main()
 		printf(" 15 - convert grayscale\n");
 		printf("16 - grayscale_binar\n");
 		printf("17 - rgb-hsv\n");
-		
+		printf("18 - Histograma\n");
+		printf("19 - FDP\n");
+		printf("20 - acumulator\n");
+		printf("21 - praguri\n");
+		printf("22 - praguri_erori\n");
+		printf("23 - praguri_HSV\n");
 		printf(" 0 - Exit\n\n");
 		printf("Option: ");
 		scanf("%d",&op);
 		String path;
-		
+		int res[256];
 		switch (op)
 		{
 			case 1:
@@ -748,6 +1015,26 @@ int main()
 				
 				imshow("", RGB_HSV("Images/Lena_24bits.bmp"));
 				waitKey(0);
+				break;
+			case 18:
+				Histogram("Images/cell.bmp");
+				break;
+			case 19:
+				FDP("Images/cell.bmp");
+				break;
+			case 20:
+				acumulator("Images/cell.bmp", 4);
+				break;
+			case 21:
+				praguri_multiple();
+				break;
+			case 22:
+				praguri_multiple_erori();
+				break;
+			case 23:
+				praguri_multiple_HSV();
+				break;
+				
 
 		}
 	}
